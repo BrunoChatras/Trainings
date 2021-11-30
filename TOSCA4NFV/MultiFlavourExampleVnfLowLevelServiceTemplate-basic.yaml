@@ -1,0 +1,175 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "VNFD low level service template for a multi-flavour Example VNF"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - MultiFlavourExampleVNFNodeType.yaml
+
+topology_template:
+
+  substitution_mappings:
+    node_type: MyCompany.MultiFlavourExampleVNF.1_0.1_0
+    substitution_filter:
+      properties:
+        - flavour_id: { equal: basic }
+    requirements:
+      virtual_link_frontend: [ frontEndExternalCp, virtual_link ]
+      virtual_link_backend: [ backEndExternalCp, virtual_link ]
+
+  node_templates:
+
+    MultiFlavourExampleVNFTemplate:
+      type: MyCompany.MultiFlavourExampleVNF.1_0.1_0
+      properties:
+        flavour_description: This is the template for the basic flavour
+      interfaces:
+        Vnflcm:
+          operations:
+            instantiate:
+              implementation: instantiate.workbook.mistral.yaml
+            operate: {}
+            terminate_end:
+              implementation: post-terminate-script
+      artifacts:
+        post-terminate-script:
+          description: Post terminate workflow script
+          type: tosca.artifacts.Implementation.Python
+          file: terminate.py
+
+
+    backEnd:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: backEnd
+        description: This is the VNF back-end
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 10
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 4 GB
+            virtual_cpu:
+              cpu_architecture: x86
+              num_virtual_cpu: 2
+      requirements:
+        - virtual_storage: dbStorage
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: backend.image.v1.0.qcow2
+          properties:
+            name: Backend Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB
+
+    frontEnd:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: frontEnd
+        description: This is the VNF front-end
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 2
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:
+              cpu_architecture: x86
+              num_virtual_cpu: 4
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: frontend.image.v1.0.qcow2
+          properties:
+            name: Frontend Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB
+
+    dbStorage:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 80 GB
+          rdma_enabled: true
+
+    backendInternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Backend connection point on an internal VL
+      requirements:
+        - virtual_binding: backEnd
+        - virtual_link: internalVl
+
+
+    frontEndInternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Frontend connection point on an internal VL
+      requirements:
+        - virtual_binding: frontEnd
+        - virtual_link: internalVl
+
+
+    frontEndExternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Frontend connection point on an external VL
+      requirements:
+        - virtual_binding: frontEnd
+        #- virtual_link: # the target node is determined in the NSD
+
+    backEndExternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: backend connection point on an external VL
+      requirements:
+        - virtual_binding: backEnd
+        #- virtual_link: # the target node is determined in the NSD
+
+
+
+    internalVl:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: Internal VL
+        vl_profile:
+          max_bitrate_requirements:
+            root: 100000
+            leaf: 20000
+          min_bitrate_requirements:
+            root: 10000
+            leaf: 10000
+
+  policies:
+    - policy_anti_affinity_local_backend:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ backEnd ]
+        properties:
+          scope: nfvi_node
+
+    - policy_anti_affinity_local_frontend:
+       type: tosca.policies.nfv.AntiAffinityRule
+       targets: [ frontEnd ]
+       properties:
+         scope: nfvi_node

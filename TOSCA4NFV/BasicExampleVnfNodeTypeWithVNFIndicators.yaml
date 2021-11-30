@@ -1,0 +1,93 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "Basic VNF example with VNF Indicators"
+
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+node_types:
+  MyCompany.BasicExampleVNFWithVnfIndicators.1_0.1_0:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        type: string
+        constraints: [ equal: 55840883-2257-48e7-83b1-4f10b870a5112 ]
+        default: 55840883-2257-48e7-83b1-4f10b870a5112
+      descriptor_version:
+        type: string
+        constraints : [ equal: '1.0' ]
+        default: '1.0'
+      provider:
+        type: string
+        constraints: [equal: MyCompany]
+        default: MyCompany
+      product_name:
+        type: string
+        constraints: [equal: BasicExampleVNFWithVNFIndicators ]
+        default: BasicExampleVNFWithVNFIndicators
+      software_version:
+        type: string
+        constraints: [ equal: '1.0' ]
+        default: '1.0'
+      flavour_id:
+        type: string
+        constraints: [ equal: simple ]
+        default: simple
+      flavour_description:
+        type: string
+        default: ""
+      vnfm_info:
+        type: list
+        entry_schema:
+          type: string
+        default: [ 'etsivnfm:v3.3.1' ]
+    attributes:
+      utilization_vnf_indicator:
+        type: float
+        description: holds the value of the utilization VNF indicator. It is assigned the output value of the utilization notification.
+      health_vnf_indicator:
+        type: string
+        description: holds the value of the health VNF indicator. It is assigned the output value of the health notification.
+      frontend_scale_level:
+        type: integer
+      backend_scale_level:
+        type: integer
+    interfaces:
+      Vnflcm:
+        operations:
+          heal:
+            inputs:
+              additional_parameters:
+                type: MyCompany.datatypes.nfv.HealAdditionalParameters
+                required: false
+      VnfIndicator:
+        type: MyCompany.nfv.interfaces.VnfIndicator
+        notifications:
+          utilization:
+            outputs:
+              utilization_value: [ SELF, utilization_vnf_indicator ]
+          health:
+            outputs:
+              health_value: [ SELF, health_vnf_indicator ]
+
+data_types:
+  MyCompany.datatypes.nfv.HealAdditionalParameters:
+    derived_from: tosca.datatypes.nfv.VnfOperationAdditionalParameters
+    properties:
+      parameter_1:
+        type: string
+        required: false
+
+
+interface_types:
+  MyCompany.nfv.interfaces.VnfIndicator:
+    derived_from: tosca.interfaces.nfv.VnfIndicator
+    notifications:
+      utilization:
+        description: this notification is used to received asynchronous information of value change of the utilization_vnf_indicator
+      health:
+        description: this notification is used to received asynchronous information of value change of the health_vnf_indicator
+
+
+policy_types:
+  MyCompany.policies.nfv.VnfIndicator:
+    derived_from: tosca.policies.nfv.VnfIndicator

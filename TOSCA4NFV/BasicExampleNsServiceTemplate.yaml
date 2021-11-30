@@ -1,0 +1,96 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+
+description: Basic NS example
+
+imports:
+  - etsi_nfv_sol001_nsd_types.yaml  
+  - BasicExampleVnfNodeType.yaml  
+  - AnotherExampleVnfNodeType.yaml  
+
+node_types:
+  BasicExampleNs:
+    derived_from: tosca.nodes.nfv.NS
+    properties:
+      descriptor_id:
+        type: string
+        constraints: [ equal: b1bb0ce7-ebco-4fa7-95ed-4840d70a1177 ]
+        default: b1bb0ce7-ebco-4fa7-95ed-4840d70a1177
+      designer:
+        type: string
+        constraints: [ equal: MyCompany ]
+        default: MyCompany
+      name:
+        type: string
+        constraints: [ equal: ExampleNsService ]
+        default: ExampleNsService
+      version:
+        type: string
+        constraints: [ equal: '1.0' ]
+        default: '1.0'
+      invariant_id:
+        type: string
+        constraints: [ equal: 1111-2222-aaaa-bbbb ]
+        default: 1111-2222-aaaa-bbbb
+      flavour_id: 
+        type: string
+        constraints: [ equal: simple ]
+        default: simple
+        
+    
+topology_template:
+  substitution_mappings:
+    node_type: BasicExampleNs
+    requirements:
+       virtual_link: [ AnotherExampleVNF, external_link ] 
+       # the External connection point of AnotherExampleVNF is exposed as the Sap
+
+  node_templates:
+    my_service:
+      type: BasicExampleNs
+      properties:
+        flavour_id: simple
+      interfaces:
+        Nslcm: 
+          operations:
+            instantiate:
+              implementation: instantiate.workflow.yaml
+            terminate:
+              implementation: terminate.workflow.yaml
+
+    basicExampleVNF:
+      type: MyCompany.BasicExampleVNF.1_0.1_0
+      properties:
+        # no property assignments needed for required properties that have a default value assigned in the node type definition, e.g. descriptor_id
+        flavour_id: simple
+        vnf_profile:
+          instantiation_level: level_1
+          min_number_of_instances: 2
+          max_number_of_instances: 6
+      requirements:
+        - virtual_link: NsVirtualLink_1
+    
+    anotherExampleVNF:
+      type: AnotherCompany.AnotherBasicExampleVNF.1_0.1_0
+      properties:
+        flavour_id: simple
+        vnf_profile:
+          instantiation_level: level_1
+          min_number_of_instances: 1
+          max_number_of_instances: 3
+      requirements:
+        - virtual_link: NsVirtualLink_1
+        # - external_link: # map to virtual_link requirement of the NS node
+        - dependency: basicExampleVNF
+
+    NsVirtualLink_1:
+      type: tosca.nodes.nfv.NsVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ipv4]          
+        vl_profile:
+          max_bitrate_requirements:
+             root: 1000
+          min_bitrate_requirements:    
+             root: 1000
+
+ 

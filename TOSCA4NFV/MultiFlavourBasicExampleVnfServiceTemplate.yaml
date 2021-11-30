@@ -1,0 +1,21 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "VNFD top-level service template for a Multi Flavour  Example VNF"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - MultiFlavourExampleVNFNodeType.yaml
+  
+topology_template:
+
+  inputs:
+    flavour_id:
+      type: string
+      description: VNF deployment flavour selected by the consumer. It is provided in the API       
+      
+ 
+  node_templates:
+    
+    MultiFlavourExampleVNFTemplate:
+      type: MyCompany.MultiFlavourExampleVNF.1_0.1_0
+      properties:
+        flavour_id: { get_input: flavour_id }
+      

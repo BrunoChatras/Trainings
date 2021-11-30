@@ -1,0 +1,261 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "VNFD service template for a Scalable Basic Example VNF"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - BasicExampleVnfNodeType.yaml
+
+topology_template:
+
+  substitution_mappings:
+    node_type: MyCompany.BasicExampleVNF.1_0.1_0
+    requirements:
+      virtual_link: [ frontEndExternalCp, virtual_link ]
+
+  node_templates:
+
+    BasicExampleVNFTemplate:
+      type: MyCompany.BasicExampleVNF.1_0.1_0
+      properties:
+        flavour_id: simple
+      interfaces:
+        Vnflcm:
+          operations:
+            instantiate:
+              implementation: instantiate.workbook.mistral.yaml
+            operate: {}
+            scale: {}
+
+    backEnd:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: backEnd
+        description: This is the VNF back-end
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 10
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 4 GB
+            virtual_cpu:
+              cpu_architecture: x86
+              num_virtual_cpu: 2
+      requirements:
+        - virtual_storage: dbStorage
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: backend.image.v1.0.qcow2
+          properties:
+            name: Backend Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB
+
+    frontEnd:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: frontEnd
+        description: This is the VNF front-end
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 2
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:
+              cpu_architecture: x86
+              num_virtual_cpu: 4
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: frontend.image.v1.0.qcow2
+          properties:
+            name: Frontend Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB
+
+    dbStorage:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 80 GB
+          rdma_enabled: true
+
+    backendInternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Backend connection point on an internal VL
+      requirements:
+        - virtual_binding: backEnd
+        - virtual_link: internalVl
+
+
+    frontEndInternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Frontend connection point on an internal VL
+      requirements:
+        - virtual_binding: frontEnd
+        - virtual_link: internalVl
+
+
+    frontEndExternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Frontend connection point on an external VL
+      requirements:
+        - virtual_binding: frontEnd
+        #- virtual_link: # the target node is determined in the NSD
+
+    internalVl:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: Internal VL
+        vl_profile:
+          max_bitrate_requirements:
+            root: 100000
+            leaf: 20000
+          min_bitrate_requirements:
+            root: 10000
+            leaf: 10000
+
+
+  policies:
+    - scaling_aspects:
+        type: tosca.policies.nfv.ScalingAspects
+        properties:
+          aspects:
+            backendaspect:
+              name: ..
+              description: ..
+              max_scale_level: 10
+            frontendaspect:
+              name: ..
+              description: ..
+              max_scale_level: 4
+
+
+    - backend_vdu_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ backEnd ]
+
+    - backend_vdu_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: backendaspect
+          deltas:
+            delta_1:
+              number_of_instances: 2
+        targets: [ backEnd ]
+
+
+    - frontend_vdu_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 1
+        targets: [ frontEnd ]
+
+    - frontend_vdu_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: frontendaspect
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ frontEnd ]
+
+
+    - internalVl_bitrate_initial_delta:
+        type: tosca.policies.nfv.VirtualLinkBitrateInitialDelta
+        properties:
+          initial_delta:
+            bitrate_requirements:
+              root: 1000000
+        targets: [ internalVl ]
+
+    - internalVl_bitrate_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VirtualLinkBitrateScalingAspectDeltas
+        properties:
+          aspect: frontendaspect
+          deltas:
+            delta_1:
+              bitrate_requirements:
+                root: 1000000
+        targets: [ internalVl ]
+
+
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              description: ..
+              scale_info:
+                backendaspect:
+                  scale_level: 0
+                frontendaspect:
+                  scale_level: 0
+            instantiation_level_2:
+              description: ..
+              scale_info:
+                backendaspect:
+                  scale_level: 2
+                frontendaspect:
+                  scale_level: 3
+          default_level: instantiation_level_1
+
+    - backend_vdu_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 5
+        targets: [ backEnd ]
+
+    - frontend_vdu_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1
+            instantiation_level_2:
+              number_of_instances: 2
+        targets: [ frontEnd ]
+
+    - internalVl_instantiation_levels:
+        type: tosca.policies.nfv.VirtualLinkInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              bitrate_requirements:
+                root: 30000
+            instantiation_level_2:
+              bitrate_requirements:
+                root: 60000
+        targets: [ internalVl ]

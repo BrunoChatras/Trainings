@@ -1,0 +1,255 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "Yet Another basic VNF example node type and template"
+
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+
+node_types:
+  YetAnotherCompany.YetAnotherBasicExampleVNF.1_0.1_0:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        type: string
+        constraints: [ equal: 83340883-2257-48e7-83b1-4f10b870a111 ]
+        default: 83340883-2257-48e7-83b1-4f10b870a111
+      descriptor_version:
+        type: string
+        constraints : [ equal: '1.0' ]
+        default: '1.0'
+      provider:
+        type: string
+        constraints: [equal: YetAnotherCompany]
+        default: YetAnotherCompany
+      product_name:
+        type: string
+        constraints: [equal: YetAnotherBasicExampleVNF ]
+        default: YetAnotherBasicExampleVNF
+      software_version:
+        type: string
+        constraints: [ equal: '1.0' ]
+        default: '1.0'
+      flavour_id:
+        type: string
+        constraints: [ equal: simple ]
+        default: "simple"
+      flavour_description:
+        type: string
+        default: ""
+      vnfm_info:
+        type: list
+        entry_schema:
+          type: string
+        default: [ 'etsivnfm:v3.3.1' ]
+    requirements:        
+      - virtual_link:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [ 0, 1 ]
+      - external_link:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [ 0, 1 ]
+          
+          
+          
+topology_template:
+
+  substitution_mappings:
+    node_type: YetAnotherCompany.YetAnotherBasicExampleVNF.1_0.1_0
+    requirements:
+      external_link:  [ VnfcA_ExternalCp, virtual_link ]
+
+
+  node_templates:
+
+    YetAnotherBasicExampleVNFTemplate:
+      type: YetAnotherCompany.YetAnotherBasicExampleVNF.1_0.1_0
+      properties:
+        flavour_id: simple
+
+
+    VNFC_A:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VNFC A
+        description: This is the VNFC A
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 10
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 16 GB
+            virtual_cpu:
+              num_virtual_cpu: 8
+      requirements:
+        - virtual_storage: dbStorage
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: VNFC_A.image.v1.0.qcow2
+          properties:
+            name: VNFC-A Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB
+
+    VNFC_B:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VNFC B
+        description: This is the VNFC B
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 2
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:
+              num_virtual_cpu: 4
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: VNFC_B.image.v1.0.qcow2
+          properties:
+            name: VNFC-B Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB
+
+    VNFC_C:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: VNFC C
+        description: This is the VNFC C
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 2
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:
+              num_virtual_cpu: 4
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: VNFC_C.image.v1.0.qcow2
+          properties:
+            name: VNFC-C Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB
+
+    dbStorage:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 80 GB
+          rdma_enabled: true
+
+    VnfcA_InternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Connection point on an internal VL
+      requirements:
+        - virtual_binding: VNFC_A
+        - virtual_link: internalVl-X
+
+
+    VnfcB_InternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: connection point on an internal VL
+      requirements:
+        - virtual_binding: VNFC_B
+        - virtual_link: internalVl-X
+
+    VnfcC_InternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: connection point on an internal VL
+      requirements:
+        - virtual_binding: VNFC_C
+        - virtual_link: internalVl-X
+        
+    VnfcB_SpecialInternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv6 ]
+        description: connection point on an internal VL
+      requirements:
+        - virtual_binding: VNFC_B
+        - virtual_link: internalVl-Y
+
+    VnfcC_SpecialInternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv6 ]
+        description: connection point on an internal VL
+      requirements:
+        - virtual_binding: VNFC_C
+        - virtual_link: internalVl-Y
+        
+        
+    VnfcA_ExternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: connection point on an external VL
+      requirements:
+        - virtual_binding: VNFC_A
+        #- virtual_link: # the target node is determined in the NSD
+
+    
+    internalVl-X:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: Internal VL
+        vl_profile:
+          max_bitrate_requirements:
+            root: 100000
+            leaf: 20000
+          min_bitrate_requirements:
+            root: 10000
+            leaf: 10000
+          
+          
+    internalVl-Y:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv6 ]
+        description: Internal VL
+        vl_profile:
+          max_bitrate_requirements:
+            root: 100000
+            leaf: 20000
+          min_bitrate_requirements:
+            root: 10000
+            leaf: 10000

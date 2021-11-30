@@ -1,0 +1,77 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "Augmented Basic VNF example"
+
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+node_types:
+  MyCompany.AugmentedBasicExampleVNF.1_0.1_0:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        type: string
+        constraints: [ equal: 34840883-2257-48e7-83b1-4f10b870a5112 ]
+        default: 34840883-2257-48e7-83b1-4f10b870a5112
+      descriptor_version:
+        type: string
+        constraints : [ equal: '1.0' ]
+        default: '1.0'
+      provider:
+        type: string
+        constraints: [equal: MyCompany]
+        default: MyCompany
+      product_name:
+        type: string
+        constraints: [equal: AugmentedBasicExampleVNF ]
+        default: AugmentedBasicExampleVNF
+      software_version:
+        type: string
+        constraints: [ equal: '1.0' ]
+        default: '1.0'
+      flavour_id:
+        type: string
+        constraints: [ equal: simple ]
+        default: "simple"
+      flavour_description:
+        type: string
+        default: ""
+      vnfm_info:
+        type: list
+        entry_schema:
+          type: string
+        default: [ 'etsivnfm:v3.3.1' ]
+      configurable_properties:
+        type: MyCompany.datatypes.nfv.VnfConfigurableProperties
+        required: false
+    requirements:
+      - virtual_link:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [ 0, 0 ]
+      - virtual_link_backend:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [ 0, 1 ]
+      - virtual_link_frontend:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [ 0, 1 ]
+      - virtual_link_management:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [ 0, 1 ]
+
+data_types:
+  MyCompany.datatypes.nfv.VnfConfigurableProperties:
+    derived_from: tosca.datatypes.nfv.VnfConfigurableProperties
+    properties:
+      additional_configurable_properties:
+        type: MyCompany.datatypes.nfv.VnfAdditionalConfigurableProperties
+        required: true
+
+  MyCompany.datatypes.nfv.VnfAdditionalConfigurableProperties:
+    derived_from: tosca.datatypes.nfv.VnfAdditionalConfigurableProperties
+    properties:
+      dns_server:
+        type: string
+        required: true

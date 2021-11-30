@@ -1,0 +1,62 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "Basic VNF example"
+
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+
+node_types:
+  MyCompany.BasicExampleVNF.1_0.1_0:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        type: string
+        constraints: [ equal: 24840883-2257-48e7-83b1-4f10b870a512 ]
+        default: 24840883-2257-48e7-83b1-4f10b870a512
+      descriptor_version:
+        type: string
+        constraints : [ equal: '1.0' ]
+        default: '1.0'
+      provider:
+        type: string
+        constraints: [equal: MyCompany]
+        default: MyCompany
+      product_name:
+        type: string
+        constraints: [equal: BasicExampleVNF ]
+        default: BasicExampleVNF
+      software_version:
+        type: string
+        constraints: [ equal: '1.0' ]
+        default: '1.0'
+      flavour_id:
+        type: string
+        constraints: [ equal: simple ]
+        default: "simple"
+      flavour_description:
+        type: string
+        default: ""
+      vnfm_info:
+        type: list
+        entry_schema:
+          type: string
+        default: [ 'etsivnfm:v3.3.1' ]
+      configurable_properties:
+        type: MyCompany.datatypes.nfv.VnfConfigurableProperties
+        required: false
+
+
+data_types:
+  MyCompany.datatypes.nfv.VnfConfigurableProperties:
+    derived_from: tosca.datatypes.nfv.VnfConfigurableProperties
+    properties:
+      additional_configurable_properties:
+        type: MyCompany.datatypes.nfv.VnfAdditionalConfigurableProperties
+        required: true
+
+  MyCompany.datatypes.nfv.VnfAdditionalConfigurableProperties:
+    derived_from: tosca.datatypes.nfv.VnfAdditionalConfigurableProperties
+    properties:
+      dns_server:
+        type: string
+        required: true
