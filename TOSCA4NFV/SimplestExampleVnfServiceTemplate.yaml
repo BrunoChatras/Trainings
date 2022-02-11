@@ -1,0 +1,100 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "VNFD service template for the simplest example VNF"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+ 
+# the VNF node type definition for the simplest VNF
+node_types:
+  MyCompany.SimplestExampleVNF.1_0.1_0:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        type: string
+        constraints: [ equal: 24840883-2257-48e7-83b1-4f10b870a512 ]
+        default: 24840883-2257-48e7-83b1-4f10b870a512
+      descriptor_version:
+        type: string
+        constraints : [ equal: '1.0' ]
+        default: '1.0'
+      provider:
+        type: string
+        constraints: [equal: MyCompany]
+        default: MyCompany
+      product_name:
+        type: string
+        constraints: [equal: SimplestExampleVNF ]
+        default: SimplestExampleVNF
+      software_version:
+        type: string
+        constraints: [ equal: '1.0' ]
+        default: '1.0'
+      flavour_id:
+        type: string
+        constraints: [ equal: simple ]
+        default: "simple"
+      flavour_description:
+        type: string
+        default: ""
+      vnfm_info:
+        type: list
+        entry_schema:
+          type: string
+        default: [ 'etsivnfm:v3.3.1' ]
+
+
+# the toplogy template for the simplest VNF
+
+topology_template:
+
+  substitution_mappings:
+    node_type: MyCompany.SimplestExampleVNF.1_0.1_0
+    requirements:
+      virtual_link: [ singleVnfcExternalCp, virtual_link ]
+
+  node_templates:
+
+    # the node template for the simplest VNF
+    SimplestExampleVNFTemplate:
+      type: MyCompany.SimplestExampleVNF.1_0.1_0
+      properties:
+        flavour_id: simple
+        
+    # the node template for the single VNFC of this simplest VNF
+    singleVnfc:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: singleVnfc
+        description: This is the single VNFC for the simplest VNF
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 2        
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 4 GB
+            virtual_cpu:
+              num_virtual_cpu: 2
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: sinngleVnfc.image.v1.0.qcow2
+          properties:
+            name: Software for the single VNFC
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: b9c3036539fd7a5f87a1bf38eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare          
+            size: 2 GB
+
+    # the node template for the connection point attached to the single VNFC
+    singleVnfcExternalCp:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: connection point on an external VL
+      requirements:
+        - virtual_binding: singleVnfc
+        #- virtual_link: # the target node is determined in the NSD
+

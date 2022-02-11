@@ -42,7 +42,7 @@ topology_template:
     node_type: BasicExampleNs
     requirements:
        virtual_link: [ AnotherExampleVNF, external_link ] 
-       # the External connection point of AnotherExampleVNF is exposed as the Sap
+       # one of the External connection point of AnotherExampleVNF is exposed as the Sap
 
   node_templates:
     my_service:
@@ -57,7 +57,7 @@ topology_template:
             terminate:
               implementation: terminate.workflow.yaml
 
-    basicExampleVNF:
+    BasicExampleVNF:
       type: MyCompany.BasicExampleVNF.1_0.1_0
       properties:
         # no property assignments needed for required properties that have a default value assigned in the node type definition, e.g. descriptor_id
@@ -69,7 +69,7 @@ topology_template:
       requirements:
         - virtual_link: NsVirtualLink_1
     
-    anotherExampleVNF:
+    AnotherExampleVNF:
       type: AnotherCompany.AnotherBasicExampleVNF.1_0.1_0
       properties:
         flavour_id: simple
@@ -80,7 +80,7 @@ topology_template:
       requirements:
         - virtual_link: NsVirtualLink_1
         # - external_link: # map to virtual_link requirement of the NS node
-        - dependency: basicExampleVNF
+        - dependency: BasicExampleVNF
 
     NsVirtualLink_1:
       type: tosca.nodes.nfv.NsVirtualLink

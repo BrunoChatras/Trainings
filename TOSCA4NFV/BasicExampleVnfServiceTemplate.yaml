@@ -39,10 +39,9 @@ topology_template:
           min_number_of_instances: 1
           max_number_of_instances: 10
         boot_data:
-          kvp_data:
-            data:{}
-              # PM: TODO - an unexpected typing error is produced!
-    #          dns_address: { get_property: [ BasicExampleVNFTemplate, configurable_properties, additional_configurable_properties, dns_server ] }
+          kvp_data: 
+            data:
+             dns_address: { get_property: [ BasicExampleVNFTemplate, configurable_properties, additional_configurable_properties, dns_server ] }          
       capabilities:
         virtual_compute:
           properties:

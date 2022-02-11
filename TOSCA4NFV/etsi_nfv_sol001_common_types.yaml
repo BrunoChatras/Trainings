@@ -1,11 +1,11 @@
 tosca_definitions_version: tosca_simple_yaml_1_3
-description: ETSI NFV SOL 001 common types definitions version 3.3.1
+description: ETSI NFV SOL 001 common types definitions version 4.0.11
 metadata:
   template_name: etsi_nfv_sol001_common_types
   template_author: ETSI_NFV
-  template_version: 3.3.1
-
+  template_version: 4.0.11
 data_types:
+
   tosca.datatypes.nfv.L2AddressData:
     derived_from: tosca.datatypes.Root
     description: Describes the information on the MAC addresses to be assigned to a connection point. 
@@ -13,8 +13,8 @@ data_types:
       mac_address_assignment:
         type: boolean
         description: Specifies if the address assignment is the responsibility of management and orchestration function or not. If it is set to True, it is the management and orchestration function responsibility
-        required: true 
-  
+        required: true
+
   tosca.datatypes.nfv.L3AddressData:
     derived_from: tosca.datatypes.Root
     description: Provides information about Layer 3 level addressing scheme and parameters applicable to a CP 
@@ -29,7 +29,7 @@ data_types:
         required: true
       ip_address_type:
         type: string
-        description: Defines address type. The address type should be aligned with the address type supported by the layer_protocols properties of the connetion point
+        description: Defines address type. The address type should be aligned with the address type supported by the layer_protocols properties of the connection point
         required: false
         constraints:
           - valid_values: [ ipv4, ipv6 ]
@@ -39,6 +39,12 @@ data_types:
         required: false
         constraints:
           - greater_than: 0
+      fixed_ip_address:
+        type: list
+        description: IP address to be assigned to the CP instance. This attribute is only permitted for Cpds without external connectivity, i.e. connectivity outside the VNF. If present, it shall be compatible with the values of the L3ProtocolData of the VnfVirtualLink referred to by the Cp, if L3ProtocolData is included in the VnfVirtualLink
+        required: false
+        entry_schema:
+          type: string
 
   tosca.datatypes.nfv.AddressData:
     derived_from: tosca.datatypes.Root
@@ -65,7 +71,7 @@ data_types:
     properties:
       layer_protocols:
         type: list
-        description: Identifies the protocol a virtualLink gives access to (ethernet, mpls, odu2, ipv4, ipv6, pseudo-wire).The top layer protocol of the virtualLink protocol stack shall always be provided. The lower layer protocols may be included when there are specific requirements on these layers.
+        description: Identifies the protocol a virtualLink gives access to (ethernet, mpls, odu2, ipv4, ipv6, pseudo-wire). The top layer protocol of the virtualLink protocol stack shall always be provided. The lower layer protocols may be included when there are specific requirements on these layers.
         required: true
         entry_schema:
           type: string
@@ -101,8 +107,8 @@ data_types:
     properties:
       associated_layer_protocol:
         type: string
+        description: One of the values of the property layer_protocols of the CP
         required: true
-        description: One of the values of the property layer_protocols of the CP 
         constraints:
           - valid_values: [ ethernet, mpls, odu2, ipv4, ipv6, pseudo-wire ]
       address_data:
@@ -111,33 +117,6 @@ data_types:
         entry_schema: 
           type: tosca.datatypes.nfv.AddressData
         required: false
-
-  tosca.datatypes.nfv.VnfProfile:
-    derived_from: tosca.datatypes.Root
-    description: describes a profile for instantiating VNFs of a particular NS DF according to a specific VNFD and VNF DF.
-    properties:
-      instantiation_level:
-        type: string
-        description: Identifier of the instantiation level of the VNF DF to be used for instantiation. If not present, the default instantiation level as declared in the VNFD shall be used.
-        required: false
-      min_number_of_instances:
-        type: integer
-        description: Minimum number of instances of the VNF based on this VNFD that is permitted to exist for this VnfProfile.
-        required: true
-        constraints:
-          - greater_or_equal: 0
-      max_number_of_instances:
-        type: integer
-        description: Maximum number of instances of the VNF based on this VNFD that is permitted to exist for this VnfProfile.
-        required: true
-        constraints:
-          - greater_or_equal: 0
-      service_availability_level:
-        type: integer
-        description: Specifies the service availability level for the VNF instance created from this profile.
-        required: false
-        constraints:
-          - greater_or_equal: 1
 
   tosca.datatypes.nfv.Qos:
     derived_from: tosca.datatypes.Root
@@ -162,47 +141,78 @@ data_types:
         constraints:
            - in_range: [ 0.0, 1.0 ]
 
+  tosca.datatypes.nfv.VnfProfile:
+    derived_from: tosca.datatypes.Root
+    description: describes a profile for instantiating VNFs of a particular NS DF according to a specific VNFD and VNF DF.
+    properties: 
+      instantiation_level:
+        type: string
+        description: Identifier of the instantiation level of the VNF DF to be used for instantiation. If not present, the default instantiation level as declared in the VNFD shall be used.
+        required: false
+      min_number_of_instances:
+        type: integer
+        description: Minimum number of instances of the VNF based on this VNFD that is permitted to exist for this VnfProfile.
+        required: true
+        constraints:
+          - greater_or_equal: 0
+      max_number_of_instances:
+        type: integer
+        description: Maximum number of instances of the VNF based on this VNFD that is permitted to exist for this VnfProfile.
+        required: true
+        constraints:
+          - greater_or_equal: 0
+      service_availability_level:
+        type: integer
+        description: Specifies the service availability level for the VNF instance created from this profile.
+        required: false
+        constraints:
+          - greater_or_equal: 1
+
   tosca.datatypes.nfv.VnfMonitoringParameter:
     derived_from: tosca.datatypes.Root
     description: Represents information on virtualised resource related performance metrics applicable to the VNF.
     properties:
       name:
-       type: string
-       description: Human readable name of the monitoring parameter
-       required: true
+        type: string
+        description: Human readable name of the monitoring parameter
+        required: true
       performance_metric:
-       type: string
-       description: Identifies a performance metric to be monitored, according to ETSI GS NFV-IFA 027. 
-       required: true
-       constraints:
-        - valid_values: [ v_cpu_usage_mean_vnf, v_cpu_usage_peak_vnf, v_memory_usage_mean_vnf, v_memory_usage_peak_vnf, v_disk_usage_mean_vnf, v_disk_usage_peak_vnf, byte_incoming_vnf_ext_cp, byte_outgoing_vnf_ext_cp, packet_incoming_vnf_ext_cp, packet_outgoing_vnf_ext_cp ] 
+        type: string
+        description: Identifies a performance metric to be monitored, according to ETSI GS NFV-IFA 027. 
+        required: true
+        constraints:
+          - valid_values: [ v_cpu_usage_mean_vnf, v_cpu_usage_peak_vnf, v_memory_usage_mean_vnf, v_memory_usage_peak_vnf, v_disk_usage_mean_vnf, v_disk_usage_peak_vnf, byte_incoming_vnf_ext_cp, byte_outgoing_vnf_ext_cp, 
+packet_incoming_vnf_ext_cp, packet_outgoing_vnf_ext_cp ] 
       collection_period:
-       type: scalar-unit.time
-       description: Describes the periodicity at which to collect the performance information. 
-       required: false
-       constraints: 
-        - greater_than: 0 s
-        
+        type: scalar-unit.time
+        description: Describes the periodicity at which to collect the performance information. 
+        required: false
+        constraints: 
+          - greater_than: 0 s
+
 capability_types:
+
   tosca.capabilities.nfv.VirtualLinkable:
     derived_from: tosca.capabilities.Node
     description: A node type that includes the VirtualLinkable capability indicates that it can be pointed by tosca.relationships.nfv.VirtualLinksTo relationship type
- 
+
 relationship_types:
+
   tosca.relationships.nfv.VirtualLinksTo:
     derived_from: tosca.relationships.DependsOn
-    description: Represents an association relationship between the VduCp and VnfVirtualLink node types or the association between either a VnfExtCp, a PnfExtCp or a Sap and an NsVirtualLink node types. 
+    description: Represents an association relationship between the VduCp or the VnfExtCp and the VnfVirtualLink node types or the association between either a VnfExtCp, a VduCp, a VirtualCp, a PnfExtCp or a Sap and an NsVirtualLink node types.
     valid_target_types: [ tosca.capabilities.nfv.VirtualLinkable ]
 
   tosca.relationships.nfv.VipVirtualLinksTo:
     derived_from: tosca.relationships.DependsOn
     description: Represents an association relationship between the VipCp and a VnfVirtualLink node types or between the former and a NsVirtualLink node types. 
     valid_target_types: [ tosca.capabilities.nfv.VirtualLinkable ]
-    
+
 node_types:
+
   tosca.nodes.nfv.Cp:
     derived_from: tosca.nodes.Root
-    description:  Provides information regarding the purpose of the connection point 
+    description: Provides information regarding the purpose of the connection point 
     properties:
       layer_protocols:
         type: list
@@ -212,7 +222,7 @@ node_types:
           type: string
           constraints:
             - valid_values: [ ethernet, mpls, odu2, ipv4, ipv6, pseudo-wire ]
-      role: #Name in ETSI NFV IFA011: cpRole
+      role: #Name in ETSI GS NFV-IFA 011: cpRole
         type: string
         description: Identifies the role of the port in the context of the traffic flow patterns in the VNF or parent NS 
         required: false
@@ -230,10 +240,11 @@ node_types:
           type: tosca.datatypes.nfv.CpProtocolData
       trunk_mode:
         type: boolean
-        description: Provides information about whether the CP instantiated from this Cp is in Trunk mode (802.1Q or other), When operating in "trunk mode", the Cp is capable of carrying traffic for several VLANs. Absence of this property implies that trunkMode is not configured for the Cp i.e. It is equivalent to boolean value "false".
+        description: Provides information about whether the CP instantiated from this Cp is in Trunk mode (802.1Q or other). When operating in "trunk mode", the Cp is capable of carrying traffic for several VLANs. Absence of this property implies that trunkMode is not configured for the Cp i.e. It is equivalent to boolean value "false".
         required: false
 
 policy_types:
+
   tosca.policies.nfv.Abstract.SecurityGroupRule:
     derived_from: tosca.policies.Root
     description: The Abstract.SecurityGroupRule type represents an abstract policy type without any target requirements
