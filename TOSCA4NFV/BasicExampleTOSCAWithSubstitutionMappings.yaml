@@ -1,0 +1,112 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "Basic example for illustrating TOSCA concepts with substitution mappings"
+
+node_types:
+
+  App: 
+    derived_from: tosca.nodes.Root
+    properties:
+      app_id:
+        type: integer
+        required: false
+    capabilities:
+      rqep: 
+        type: RequestEndPoint
+    requirements:
+      - dbep:  
+          capability: DatabaseEndPoint
+          node: Database 
+          relationship: ConnectsTo
+          occurrences: [ 0, UNBOUNDED ]      
+  
+  Frontend:
+    derived_from: tosca.nodes.Root
+    properties:
+      component_id:
+        type: integer
+        required: false        
+    capabilities:
+      req_rcv: 
+        type: RequestEndPoint
+          
+  Backend:
+    derived_from: tosca.nodes.Root
+    properties:
+      component_id:
+        type: integer
+        required: false
+    requirements:
+     - db_access: 
+         capability: DatabaseEndPoint
+         node: Database 
+         relationship: DataBaseConnectsTo
+         occurrences: [ 0, UNBOUNDED ]
+    
+
+  Database:
+    derived_from: tosca.nodes.Root
+    properties:
+      database_id:
+        type: integer
+        required: false
+    capabilities:
+      dbep: 
+        type: DatabaseEndPoint
+      
+    
+    
+relationship_types:
+
+  DataBaseConnectsTo:
+    derived_from: tosca.relationships.ConnectsTo
+    description: Represents an association relationship between an application and a database 
+    valid_target_types: [ DatabaseEndPoint ]
+        
+        
+capability_types:
+
+  DatabaseEndPoint:
+    derived_from: tosca.capabilities.Endpoint.Database
+
+  RequestEndPoint:
+    derived_from: tosca.capabilities.Endpoint
+
+
+      
+topology_template:
+
+  substitution_mappings:
+    node_type: App
+    capabilities:
+      rqep: [ my_frontend, req_rcv ]
+    requirements:
+      dbep: [my_backend, db_access ]
+
+
+  node_templates:
+
+    my_system:
+      type: App
+      properties:
+        app_id: 122
+               
+    my_database:
+      type: Database
+      properties:
+        database_id: 34
+              
+    my_backend:
+      type: Backend
+      properties:
+        component_id: 33  
+      requirements:
+        - db_access: my_database
+             
+    my_frontend:
+      type: Frontend
+      properties:
+        component_id: 31 
+      
+        
+
+               

@@ -1,0 +1,85 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "Basic example for illustrating TOSCA concepts"
+
+node_types:
+
+  applications:
+    derived_from: tosca.nodes.Root
+    properties:
+      application_id:
+        type: integer
+        required: false
+      is_latest_version:
+        type: boolean
+        required: false  
+
+  application_example:
+    derived_from: applications
+    properties:
+      app_name:
+        type: string
+        required: true
+      database_address:
+        type: string  
+        required: false
+    requirements:
+     - database_access: 
+         capability: DBEndPoint
+         node: database 
+         relationship: ConnectsTo
+         occurrences: [ 0, UNBOUNDED ]
+
+  database:
+    derived_from: tosca.nodes.Root
+    properties:
+      port:
+        type: integer
+        required: true
+    attributes: 
+      ip_address:
+        type: string
+    capabilities:
+      database_endpoint: 
+        type: DBEndPoint
+        
+        
+        
+capability_types:
+        
+  DBEndPoint:
+    derived_from: tosca.capabilities.Node
+    description: The capability to expose access to a database
+    
+    
+relationship_types:
+
+  ConnectsTo:
+    derived_from: tosca.relationships.DependsOn
+    description: Represents an association relationship between an application and a database 
+    valid_target_types: [ DBEndPoint ]
+        
+      
+topology_template:
+
+  inputs:
+    app_name_input:
+      type: string
+
+
+  node_templates:
+        
+    mysql_database:
+      type: database
+      properties:
+        port: 8080
+      
+    mongoDB_database:
+      type: database
+      properties:
+        port: 8080
+        
+      
+
+        
+
+               
