@@ -1,0 +1,58 @@
+# A.18-01.yaml
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: A sample VNF descriptor with containerized VDUs
+imports:
+  - onap_asd_node_type.yaml # ASD node type definitions 
+  - onap_asd_artifact_types.yaml
+
+
+topology_template:
+
+  node_templates:
+    CNF:
+        type: tosca.nodes.asd
+        properties:
+          descriptor_id: 5af09567-fc5f-4be9-b372-0cc431ad5c03
+          descriptor_invariant_id: 6bf09567-fc5f-4be9-b372-0cc431ad5c03
+          descriptor_version: "1.0"
+          schema_version: "1.0"
+          function_description: This ASD describes a firewall
+          provider: MyCompany
+          application_name: firewall
+          application_version: "2.1"
+          ext_cpds:
+            - id: ingress_cp
+              description: The cp for receiving ingress traffic
+              virtual_link_requirement: backbone_network
+            - id: egress_cp
+              description: The cp for sending egress traffic
+              virtual_link_requirement: backbone_network
+            - id: oam_cp
+              description: The cp for sending and receiving management data
+              virtual_link_requirement: oam_network
+          enhanced_cluster_capabilities:
+            min_kernel_version: "4.3.15"
+            cluster_labels:
+               - "feature.node.kubernetes.io/network-sriov.capable=true"
+               - "feature.node.kubernetes.io/memory-numa: true"     
+          
+                
+        artifacts:
+          main_helm_chart:
+            type: tosca.artifacts.asd.deploymentItem
+            file: /artifacts/charts/main.tgz
+            properties:
+              item_id:  main
+              artifact_type: "helm_chart"
+              deployment_order: 1
+              lifecycle_parameters:
+                - ".Values.fullBackupInterval"
+        
+          auxillary_helm_chart:
+            type: tosca.artifacts.asd.deploymentItem
+            file: /artifacts/charts/auxillary.tgz
+            properties:
+              item_id: auxillary
+              artifact_type: "helm_chart"
+              deployment_order: 2
+        

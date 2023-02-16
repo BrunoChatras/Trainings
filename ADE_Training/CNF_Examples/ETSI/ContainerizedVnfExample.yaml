@@ -1,0 +1,331 @@
+# A.18-01.yaml
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: A sample VNF descriptor with containerized VDUs
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml # VNFD type definitions 
+
+data_types:
+  Example.datatypes.nfv.VnfAdditionalConfigurableProperties:
+    derived_from: tosca.datatypes.nfv.VnfAdditionalConfigurableProperties
+    properties:
+      name_prefix_in_cism:
+        type: string
+        required: false
+      dns_server:
+        type: list
+        entry_schema:
+          type: string
+        required: false
+  Example.datatypes.nfv.VnfConfigurableProperties:
+    derived_from: tosca.datatypes.nfv.VnfConfigurableProperties
+    properties:
+      additional_configurable_properties:
+        type: Example.datatypes.nfv.VnfAdditionalConfigurableProperties
+
+node_types:
+  ExampleCorp.vDB.0_1.0_2:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        default: 5af09567-fc5f-4be9-b372-0cc431ad5c03
+        constraints: [ equal: 5af09567-fc5f-4be9-b372-0cc431ad5c03 ]
+      descriptor_version:
+        default: "0.2"
+        constraints: [ equal: "0.2" ]
+      provider:
+        default: "ExampleCorp"
+        constraints: [ equal: "ExampleCorp" ]
+      product_name:
+        default: "vDB"
+        constraints: [ equal: "vDB" ]
+      software_version:
+        default: "0.1"
+        constraints: [ equal: "0.1" ]
+      vnfm_info:
+       type: list
+       required: true
+       description: Identifies VNFM(s) compatible with the VNF
+       entry_schema:
+        type: string
+        constraints:
+          - equal: 'etsivnfm:v0.1.0'
+       default: [ 'etsivnfm:v0.1.0' ]
+      flavour_id:
+        default: simple
+        constraints: [ valid_values:  [ simple, complex ] ]
+      flavour_description:
+        default: ""
+      configurable_properties:
+        type: Example.datatypes.nfv.VnfConfigurableProperties
+        description: Describes the configurable properties of the VNF
+        required: false
+    requirements:
+      - virtual_link:
+         capability: tosca.capabilities.nfv.VirtualLinkable
+         occurrences: [0, 0]
+      - virtual_link_1:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
+      - virtual_link_2:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
+      - virtual_link_virt:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
+
+
+topology_template:
+  substitution_mappings:
+    node_type: ExampleCorp.vDB.0_1.0_2
+    requirements:
+      virtual_link_1: [ vdu1Cp1, virtual_link ]
+      virtual_link_2: [ vdu2Cp1, virtual_link ]
+      virtual_link_virt: [ VirtCp1, virtual_link ]
+
+
+  node_templates:
+    VNF:
+        type: ExampleCorp.vDB.0_1.0_2
+        properties:
+            product_info_name: "Firewall"
+            product_info_description: "Firewall with new functionality"
+            configurable_properties: # All of the VNF  configurable properties should go here
+              is_autoscale_enabled: true
+              is_autoheal_enabled: true
+              additional_configurable_properties:
+                name_prefix_in_cism: "ExampleContainerizedVNF" # Default
+                dns_server: [ "8.8.8.8", "8.8.4.4" ] #Default
+                
+              # modifiable_attributes: {}   # All of the VNF  modifiable properties should go here
+            flavour_id: simple
+            flavour_description: "A specimen copy of the VNF Descriptor for containers"
+        interfaces:
+            Vnflcm:
+              operations: 
+                # instantiate_start:
+                # instantiate: # A sample illustration to run a instantiation script without any inputs.
+                instantiate_end: helm_test
+                
+                scale: #Invoked upon receipt of a Scale VNF request                
+                  inputs:
+                    type: "scale_out"
+                    aspect: "default"
+                
+        artifacts:
+          helm_test:
+            description: Post instantiation test script
+            type: tosca.artifacts.Implementation.Bash
+            file: Artifacts/Tests/helm_test.sh
+
+    opendb_mciop:
+      type: tosca.nodes.nfv.Mciop
+      requirements:
+        - associatedVdu: Vdu_2
+      artifacts:
+        opendb_helm:
+          description: Helm Chart for opendb Pod
+          type: tosca.artifacts.nfv.HelmChart
+          file: Artifacts/Scripts/opendb.tgz
+
+    lb_mciop:
+      type: tosca.nodes.nfv.Mciop
+      requirements:
+        - associatedVdu: Vdu_1
+        - dependency: opendb_mciop
+      artifacts:
+        lb_helm:
+          description: Helm Chart for lb Pod
+          type: tosca.artifacts.nfv.HelmChart
+          file: Artifacts/Scripts/lb.tgz
+
+    vdu1Cp1:
+      type: tosca.nodes.nfv.VduCp
+      description: "External CP for managing the VNFC"
+      properties:
+        layer_protocols: [ ethernet ]
+        vnic_type: normal
+        order: 1
+      requirements:
+        - virtual_binding: Vdu_1
+        # - virtual_link: the target node is determined in the NSD
+
+    vdu1Cp2:
+      type: tosca.nodes.nfv.VduCp
+      description: "CP for intra-VNF communication"
+      properties:
+        layer_protocols: [ ethernet ]
+        vnic_type: macvlan
+        bitrate_requirement:  10000000000 #10 GiB
+        order: 2
+        trunk_mode: true
+      requirements:
+        - virtual_binding: Vdu_1
+        - virtual_link: InternalVl
+
+    VirtCp1:
+      type: tosca.nodes.nfv.VirtualCp
+      properties:
+        layer_protocols: [ ipv6 ]
+        protocol:
+        - address_data:
+          - address_type: ip_address
+            l3_address_data:
+              floating_ip_activated: true
+              ip_address_assignment: false
+              ip_address_type: ipv6
+              number_of_ip_address: 1
+          associated_layer_protocol: ipv6
+        additionalServiceData:
+          - portData:
+            - name: DBAccessService
+              protocol: tcp
+              port: 8001
+              portConfigurable: false
+            - name: DBConfigService
+              protocol: tcp
+              port: 443
+              portConfigurable: false
+      requirements:
+        - target: Vdu_1
+        # - virtual_link: the target node is determined in the NSD
+
+    Vdu_1:
+      type: tosca.nodes.nfv.Vdu.OsContainerDeployableUnit
+      properties:
+        name: "lb"
+        description: "Advanced Software Load Balancer"
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 4
+      requirements:
+        - container: Vdu_1_Container_1
+
+    Vdu_1_Container_1:
+      type: tosca.nodes.nfv.Vdu.OsContainer
+      properties:
+        name: "lb Container"
+        description: "Advanced Software Load Balancer"
+        requested_cpu_resources: 100 # In Milli-Cpus, ie 0.1 CPU
+        cpu_resource_limit: 1000 # In Milli-Cpus, ie 1 CPU, single threaded
+        requested_memory_resources: 10 MiB
+        memory_resource_limit: 100 MiB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: Artifacts/Images/lbimage
+          properties:
+            name: lb
+            version: "7.3"
+            checksum:
+              algorithm: sha-256
+              hash: a411cafee2f0f702572369da0b765e2
+            container_format: docker
+            size: "1024MB"
+
+
+    vdu2Cp1:
+      type: tosca.nodes.nfv.VduCp
+      description: "External CP for managing the VNFC"
+      properties:
+        layer_protocols: [ ethernet ]
+        vnic_type: normal
+      requirements:
+        - virtual_binding: Vdu_2
+        # - virtual_link: the target node is determined in the NSD
+
+    vdu2Cp2:
+      type: tosca.nodes.nfv.VduCp
+      description: "CP for intra-VNF communication"
+      properties:
+        layer_protocols: [ ethernet ]
+        vnic_type: macvlan
+        bitrate_requirement:  10000000000 #10 GiB
+        order: 2
+        trunk_mode: true
+      requirements:
+        - virtual_binding: Vdu_2
+        - virtual_link: InternalVl
+
+    opendbDbStorage:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 100 GB
+          rdma_enabled: false
+
+    Vdu_2:
+      type: tosca.nodes.nfv.Vdu.OsContainerDeployableUnit
+      properties:
+        name: "opendb"
+        description: "DB Server"
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+      requirements:
+        - container: Vdu_2_Container_1
+        - container: Vdu_2_Container_2
+        - virtual_storage: opendbDbStorage
+
+    Vdu_2_Container_1:
+      type: tosca.nodes.nfv.Vdu.OsContainer
+      properties:
+        name: "opendb FE Container"
+        description: "DB Server Container"
+        requested_cpu_resources: 1000 # In Milli-Cpus, ie 1 CPU
+        cpu_resource_limit: 2500 # In Milli-Cpus, ie 2.5 CPU
+        requested_memory_resources: 1 GiB
+        memory_resource_limit: 10 GiB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: Artifacts/Images/opendbFEimage
+          properties:
+            name: opendb
+            version: "4.3"
+            checksum:
+              algorithm: sha-256
+              hash: a411cafee2f0f702572369da0b765e2
+            container_format: docker
+            size: "1024MB"
+
+
+    Vdu_2_Container_2:
+      type: tosca.nodes.nfv.Vdu.OsContainer
+      properties:
+        name: "opendb Container"
+        description: "DB Server Container"
+        requested_cpu_resources: 1000 # In Milli-Cpus, ie 1 CPU
+        cpu_resource_limit: 2500 # In Milli-Cpus, ie 2.5 CPU
+        requested_memory_resources: 1 GiB
+        memory_resource_limit: 10 GiB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: Artifacts/Images/opendbBEimage
+          properties:
+            name: opendb
+            version: "4.3"
+            checksum:
+              algorithm: sha-256
+              hash: a411cafee2f0f702572369da0b765e2
+            container_format: docker
+            size: "1024MB"
+
+
+    InternalVl: 
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ethernet ]          
+        description: Internal VL # internal virtual link meant to be implemented as a secondary container cluster internal or external network
+        vl_profile:
+          max_bitrate_requirements: #in bits per second
+            root: 100000 
+            leaf: 20000
+          min_bitrate_requirements: #in bits per second
+            root: 10000
+            leaf: 10000
+

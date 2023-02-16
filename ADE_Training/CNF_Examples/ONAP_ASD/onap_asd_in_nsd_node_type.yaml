@@ -1,0 +1,72 @@
+
+#BC: header lines added
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "ONAP ASD in NSD node type"
+
+imports: 
+  - onap_asd_data_types.yaml
+  - etsi_nfv_sol001_vnfd_types.yaml
+
+node_types:
+#BC: end of added lines
+
+  tosca.nodes.asdInNsd:
+    derived_from: tosca.nodes.nfv.VNF
+    description: "The generic ASD node types for NS requirements. Optional properties are not list here."
+    version: 0.1
+    properties:
+      descriptor_id:
+          type: string # UUID
+          description: Identifier of an ASD. It is in UUID format as specified in RFC 4122
+          required: true
+      descriptor_version:
+          type: string
+          description: Identifies the version of the ASD.
+          required: true
+          default: ""
+      provider:
+          type: string
+          description: Identifies the provider of the ASD
+          required: true
+          default: ""
+      product_name:
+          type: string
+          description: Please use the application_name property
+          required: true
+          constraints: [ equal: "" ] #BC equal: added
+          default: ""
+      software_version:
+          type: string
+          description: Please use the application_version property
+          required: true
+          constraints: [ equal: "" ] #BC equal: added
+          default: "" 
+      flavour_id:
+          type: string
+          required: true
+          constraints: [ equal: "simple" ] #BC equal: added 
+          default: "simple"
+      flavour_description:
+          type: string
+          required: true
+          constraints: [ equal: "" ] #BC equal: added
+          default: ""
+      vnfm_info:
+          type: list
+          required: true
+          entry_schema:
+             #  type: list #BC replaced with string
+             type: string
+          #constraints: [ valid_values: [[ "" ]]] #BC: moved left
+          #default: [""] #BC: bracket added
+    requirements:
+      - virtual_link:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          # relationship: tosca.relationships.nfv.VirtualLinkableTo
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0,0]
+      - virtual_links:
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          #relationship: tosca.relationships.nfv.VirtualLinkableTo
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0,UNBOUNDED]
