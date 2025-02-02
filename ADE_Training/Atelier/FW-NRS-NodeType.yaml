@@ -1,0 +1,43 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "Node type for the VNFD service template for a Firewall"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+  
+node_types:
+  MyCompany.NrsFirewallNodeType.1_0.1_0:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        value: 33840883-2257-48e7-83b1-4f10b8c2a011
+      descriptor_version:
+        value: '1.0'
+      provider:
+        value: MyCompany21
+      product_name:
+        value: Firewall
+      software_version:
+        value: '1.0'
+      flavour_id:
+        value: "simple"
+      flavour_description:
+        value: ""
+      vnfm_info:
+        value: [ 'etsivnfm:v3.3.1' ]
+    requirements:    
+      - virtual_link:   
+           capability: tosca.capabilities.nfv.VirtualLinkable
+           relationship: tosca.relationships.nfv.VirtualLinksTo
+           occurrences: [0, 0]
+      - virtual_link_IN:   
+           capability: tosca.capabilities.nfv.VirtualLinkable
+           relationship: tosca.relationships.nfv.VirtualLinksTo
+           occurrences: [0, 1]
+      - virtual_link_OUT: 
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]      
+      - virtual_link_MGT: 
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
+      

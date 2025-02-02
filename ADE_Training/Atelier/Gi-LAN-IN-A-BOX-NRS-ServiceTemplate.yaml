@@ -1,0 +1,269 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "VNFD service template for Gi-LAN combo"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - Gi-LAN-IN-A-BOX-NRS-NodeType.yaml
+  
+
+topology_template:
+
+  substitution_mappings:
+    node_type: MyCompany.NrsGi-LanInABoxVnfNodeType.1_0.1_0
+    requirements:
+      virtual_link_COMBO_IN1:   [ PROBE_IN, virtual_link ]
+      virtual_link_COMBO_OUT1:  [ PROBE_OUT, virtual_link ]
+      virtual_link_COMBO_IN2: [ TCO_IN, virtual_link ]
+      virtual_link_COMBO_OUT2: [ TCO_OUT, virtual_link ]
+      virtual_link_COMBO_IN3: [ FW_IN, virtual_link ]
+      virtual_link_COMBO_OUT3: [ FW_OUT, virtual_link ]
+      virtual_link_COMBO_MGT1: [ PROBE_MGT, virtual_link ]
+      virtual_link_COMBO_MGT2: [ TCO_MGT, virtual_link ]
+      virtual_link_COMBO_MGT3: [ FW_MGT, virtual_link ]
+
+
+  node_templates:
+
+    Gi-LanInABox:
+      type: MyCompany.NrsGi-LanInABoxVnfNodeType.1_0.1_0
+      properties:
+        flavour_id: simple
+
+    probe:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: probe
+        description: This VNFC contains a traffic probe
+        vdu_profile:
+          min_number_of_instances: 1 
+          max_number_of_instances: 1
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 4 GB
+            virtual_cpu:              
+              num_virtual_cpu: 2
+      requirements:
+        - virtual_storage: probe_db
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: probe.image.v1.0.qcow2
+          properties:
+            name: Probe Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB  
+
+    tco:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: tco
+        description: This VNFC contains a TCP optimiser function
+        vdu_profile:
+          min_number_of_instances: 1
+          max_number_of_instances: 1
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 4 GB
+            virtual_cpu:
+              cpu_architecture: x86
+              num_virtual_cpu: 2
+      requirements:
+        - virtual_storage: tco_db
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: tco.image.v1.0.qcow2
+          properties:
+            name: TCO Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: e8c3036539fd7a5f97a1bf44eb05fcce8b556a1a7e664dbeda90ed3cd74b4f5a
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB
+    fw:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: Firewall
+        description: This VNFC contains a Layer-7 Firewall
+        vdu_profile:
+          min_number_of_instances: 1 
+          max_number_of_instances: 1
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:              
+              num_virtual_cpu: 4
+      requirements:
+        - virtual_storage: fw_db
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: fw.image.v1.0.qcow2
+          properties:
+            name: Firewall Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb12fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB 
+
+
+    probe_db:
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 50 GB
+          rdma_enabled: true
+
+    tco_db: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 20 GB
+          rdma_enabled: true
+
+    fw_db: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 50 GB
+          rdma_enabled: true
+
+
+    PROBE_IN:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Ingress connection point to the data plane
+      requirements:
+        - virtual_binding: probe
+#       - virtual_link: # to be connected to an external virtual link
+
+    PROBE_OUT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Egress connection point to the data plane
+      requirements:
+        - virtual_binding: probe
+  #     - virtual_link: # to be connected to an external virtual link
+ 
+    PROBE_MGT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Management connection point to the OSS
+      requirements:
+        - virtual_binding: probe
+  #     - virtual_link: # to be connected to an external virtual link
+
+    TCO_IN:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Ingress connection point to the data plane
+      requirements:
+        - virtual_binding: tco
+#       - virtual_link: # to be connected to an external virtual link
+             
+    TCO_OUT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Egress connection point to the data plane
+      requirements:
+        - virtual_binding: tco
+  #     - virtual_link: # to be connected to an external virtual link
+ 
+    TCO_MGT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Management connection point to the OSS
+      requirements:
+        - virtual_binding: tco
+  #     - virtual_link: # to be connected to an external virtual link
+
+
+    FW_IN:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Ingress connection point to the data plane
+      requirements:
+        - virtual_binding: fw
+#       - virtual_link: # to be connected to an external virtual link
+
+    FW_OUT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Egress connection point to the data plane
+      requirements:
+        - virtual_binding: fw
+  #     - virtual_link: # to be connected to an external virtual link
+ 
+    FW_MGT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Management connection point to the OSS
+      requirements:
+        - virtual_binding: fw
+  #     - virtual_link: # to be connected to an external virtual link
+
+
+## Instantiation levels policies
+
+  policies:
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              description: single instantiation level         
+          default_level: instantiation_level_1
+
+
+    - probe_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1            
+        targets: [ probe ]
+
+
+    - tco_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1            
+        targets: [ tco ]
+
+    - fw_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 1        
+        targets: [ fw ]
+

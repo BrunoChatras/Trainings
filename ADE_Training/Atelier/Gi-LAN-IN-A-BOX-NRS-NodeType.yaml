@@ -1,0 +1,66 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "Node type for the VNFD service template for Gi-LAN in a Box"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+  
+node_types:
+  MyCompany.NrsGi-LanInABoxVnfNodeType.1_0.1_0:
+    derived_from: tosca.nodes.nfv.VNF
+    properties:
+      descriptor_id:
+        value: 33840883-2257-48e7-83b1-4f10b870a021
+      descriptor_version:
+        value: '1.0'
+      provider:
+        value: MyCompany
+      product_name:
+        value: Gi-LAN Combo
+      software_version:
+        value: '1.0'
+      flavour_id:
+        value: "simple"
+      flavour_description:
+        value: ""
+      vnfm_info:
+        value: [ 'etsivnfm:v3.3.1' ]
+    requirements:    
+      - virtual_link:   
+           capability: tosca.capabilities.nfv.VirtualLinkable
+           relationship: tosca.relationships.nfv.VirtualLinksTo
+           occurrences: [0, 0]
+      - virtual_link_COMBO_IN1:   
+           capability: tosca.capabilities.nfv.VirtualLinkable
+           relationship: tosca.relationships.nfv.VirtualLinksTo
+           occurrences: [0, 1]
+      - virtual_link_COMBO_IN2:  
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
+      - virtual_link_COMBO_IN3: 
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
+      - virtual_link_COMBO_OUT1: 
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
+      - virtual_link_COMBO_OUT2: 
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1] 
+      - virtual_link_COMBO_OUT3: 
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
+      - virtual_link_COMBO_MGT1: 
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]
+      - virtual_link_COMBO_MGT2: 
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1] 
+      - virtual_link_COMBO_MGT3: 
+          capability: tosca.capabilities.nfv.VirtualLinkable
+          relationship: tosca.relationships.nfv.VirtualLinksTo
+          occurrences: [0, 1]

@@ -1,0 +1,134 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "VNFD service template for a TCP optimiser"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - OF-ROUTER-NRS-NodeType.yaml
+  
+
+topology_template:
+
+  substitution_mappings:
+    node_type: MyCompany.NrsOfRouterNodeType.1_0.1_0
+    requirements:
+      virtual_link_DP:   [ ROUTER_DP, virtual_link ]
+      virtual_link_DP_VIP:  [ ROUTER_DP_VIP, virtual_link ]
+      virtual_link_OF: [ ROUTER_OF, virtual_link ]     
+      
+
+  node_templates:
+
+    of_router_vnf:
+      type: MyCompany.NrsOfRouterNodeType.1_0.1_0
+      properties:
+        flavour_id: simple
+    
+    router_component:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: OF-Router
+        description: This VNFC contains an OpenFlow-enabled router
+        vdu_profile:
+          min_number_of_instances: 2 
+          max_number_of_instances: 4
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:              
+              num_virtual_cpu: 4
+      requirements:
+        - virtual_storage: router_db
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: router.image.v1.0.qcow2
+          properties:
+            name: Router Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB  
+
+    router_db: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 20 GB
+          rdma_enabled: true
+
+    
+    ROUTER_DP:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Ingress connection point to the data plane
+      requirements:
+        - virtual_binding: router_component
+#       - virtual_link: # to be connected to an external virtual link
+
+    ROUTER_DP_VIP:
+      type: tosca.nodes.nfv.VipCp
+      properties:
+        vip_function: load_balance
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+                  number_of_ip_address: 1
+        layer_protocols: [ ipv4 ]
+        description: Virtual IP connection point to the data plane
+      requirements:
+        - target: ROUTER_DP
+  #     - virtual_link: # to be connected to an external virtual link     
+
+
+    ROUTER_OF:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Internal connection point to SDN controllers
+      requirements:
+        - virtual_binding: router_component
+  #     - virtual_link: # to be connected to an external virtual link     
+
+
+## Policies  
+
+  policies:      
+
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties: 
+          levels:
+            instantiation_level_1:
+              description: level 1
+              scale_info:
+                global:
+                  scale_level: 0  
+            instantiation_level_2:
+              description: level 2
+              scale_info:
+                global:
+                  scale_level: 2                 
+          default_level: instantiation_level_1
+
+
+    - router_component_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2 
+            instantiation_level_2:
+              number_of_instances: 4           
+        targets: [ router_component ]
+
+    

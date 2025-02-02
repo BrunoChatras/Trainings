@@ -1,0 +1,238 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "VNFD service template for a Probe"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - PROBE-RS-NodeType.yaml
+  
+
+topology_template:
+
+  substitution_mappings:
+    node_type: MyCompany.RsProbeNodeType.1_0.1_0
+    requirements:
+      virtual_link_DP:   [ PROBE_DP, virtual_link ]
+      virtual_link_DP_VIP:  [ PROBE_DP_VIP, virtual_link ]
+      virtual_link_MGT: [ PROBE_MGT, virtual_link ]      
+
+
+  node_templates:
+
+    probe_vnf:
+      type: MyCompany.RsProbeNodeType.1_0.1_0
+      properties:
+        flavour_id: simple
+    
+    probe_main:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: Probe
+        description: This VNFC contains the main probe software
+        vdu_profile:
+          min_number_of_instances: 2 
+          max_number_of_instances: 4
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 4 GB 
+            virtual_cpu:              
+              num_virtual_cpu: 2
+      requirements:
+        - virtual_storage: probe_main_disk
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: probe.image.v1.0.qcow2
+          properties:
+            name: Probe Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1be44eb12fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB 
+        
+    probe_main_disk: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 50 GB
+          rdma_enabled: true    
+
+    probe_manager:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: Firewall Manager
+        description: This VNFC contains the firewall management and database
+        vdu_profile:
+          min_number_of_instances: 2 
+          max_number_of_instances: 2
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 4 GB 
+            virtual_cpu:              
+              num_virtual_cpu: 2
+      requirements:
+        - virtual_storage: probe_manager_disk
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: probemanager.image.v1.0.qcow2
+          properties:
+            name: Probe manager Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb12fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB 
+    
+    probe_manager_disk: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        per_vnfc_instance: false
+        virtual_block_storage_data:
+          size_of_storage: 100 GB
+          rdma_enabled: true   
+
+    PROBE_DP:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Connection point to the data plane
+      requirements:
+        - virtual_binding: probe_main
+#       - virtual_link: # to be connected to an external virtual link
+
+    PROBE_DP_VIP:
+      type: tosca.nodes.nfv.VipCp
+      properties:
+        vip_function: load_balance
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+                  number_of_ip_address: 1
+        layer_protocols: [ ipv4 ]
+        description: Virtual IP connection point to the data plane
+      requirements:
+        - target: PROBE_DP
+  #     - virtual_link: # to be connected to an external virtual link
+ 
+    PROBE_MGT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Management connection point to the OSS
+      requirements:
+        - virtual_binding: probe_manager
+  #     - virtual_link: # to be connected to an external virtual link
+
+    PROBE_MGT_INT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Internal connection point to the main VNFC
+      requirements:
+        - virtual_binding: probe_manager
+        - virtual_link: InternalVL
+
+    PROBE_MAIN_INT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Internal connection point to the management VNFC
+      requirements:
+        - virtual_binding: probe_main
+        - virtual_link: InternalVL
+
+    InternalVL:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: Internal VL for communication between all VNFC instances
+        vl_profile:
+          max_bitrate_requirements:
+            root: 100000000000    #bit/s        
+          min_bitrate_requirements:
+            root: 10000000000     #bit/s     
+            
+
+## Policies  
+
+  policies:
+
+    - policy_affinity_local_probe_main:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ probe_main ]
+        properties:
+          scope: nfvi_node 
+
+    - policy_affinity_local_probe_manager:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ probe_manager ]
+        properties:
+          scope: nfvi_node           
+
+
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties: 
+          levels:
+            instantiation_level_1:
+              description: level 1
+              scale_info:
+                global:
+                  scale_level: 0  
+            instantiation_level_2:
+              description: level 2
+              scale_info:
+                global:
+                  scale_level: 2                 
+          default_level: instantiation_level_1
+
+
+    - probe_main_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2 
+            instantiation_level_2:
+              number_of_instances: 4           
+        targets: [ probe_main ]
+
+    - scaling_aspects:
+        type: tosca.policies.nfv.ScalingAspects
+        properties:
+          aspects:
+            global:
+              name: Global scaling
+              description: Enables scaling all scalable components of the VNF
+              max_scale_level: 2          
+
+    - probe_main_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 2
+        targets: [ probe_main ]
+
+    - probe_main_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: global
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ probe_main ]

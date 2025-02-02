@@ -1,0 +1,562 @@
+tosca_definitions_version: tosca_simple_yaml_1_3
+description: "VNFD service template for Gi-LAN combo"
+imports:
+  - etsi_nfv_sol001_vnfd_types.yaml
+  - Gi-LAN-IN-A-BOX-RS-NodeType.yaml
+  
+
+topology_template:
+
+  substitution_mappings:
+    node_type: MyCompany.RsGi-LanInABoxVnfNodeType.1_0.1_0
+    requirements:
+      virtual_link_COMBO_EXTDP:   [ ROUTER_DP, virtual_link ]
+      virtual_link_COMBO_EXTDP_VIP:  [ ROUTER_DP_VIP, virtual_link ]
+      virtual_link_COMBO_SFO_EXT: [ SFO_EXT, virtual_link ]
+
+
+  node_templates:
+
+    Gi-LanInABox:
+      type: MyCompany.RsGi-LanInABoxVnfNodeType.1_0.1_0
+      properties:
+        flavour_id: simple
+
+    router:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: OF-Router
+        description: This VNFC contains an OpenFlow-enabled router
+        vdu_profile:
+          min_number_of_instances: 2 
+          max_number_of_instances: 4
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:              
+              num_virtual_cpu: 4
+      requirements:
+        - virtual_storage: router_db
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: router.image.v1.0.qcow2
+          properties:
+            name: Router Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB  
+
+    router_db: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 20 GB
+          rdma_enabled: true
+
+   
+    sdnc:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: SDN
+        description: This VNFC contains an SDN controller
+        vdu_profile:
+          min_number_of_instances: 2 
+          max_number_of_instances: 2
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:              
+              num_virtual_cpu: 4
+      requirements:
+        - virtual_storage: sdnc_db
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: sdnc.image.v1.0.qcow2
+          properties:
+            name: SDN-C Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB  
+
+    sdnc_db: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 50 GB
+          rdma_enabled: true
+
+    sfo:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: OF-Router
+        description: This VNFC contains an internal service function orchestrator
+        vdu_profile:
+          min_number_of_instances: 2 
+          max_number_of_instances: 2
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:              
+              num_virtual_cpu: 4
+      requirements:
+        - virtual_storage: sfo_db
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: sfo.image.v1.0.qcow2
+          properties:
+            name: SFO Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb05fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB  
+
+    sfo_db: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 20 GB
+          rdma_enabled: true
+
+
+    probe:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: Probe
+        description: This VNFC contains the probe software
+        vdu_profile:
+          min_number_of_instances: 2 
+          max_number_of_instances: 6
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB 
+            virtual_cpu:              
+              num_virtual_cpu: 4
+      requirements:
+        - virtual_storage: probe_disk
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: probe.image.v1.0.qcow2
+          properties:
+            name: Probe Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1be44eb12fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB 
+        
+    probe_disk: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 200 GB
+          rdma_enabled: true    
+
+   
+    tco:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: tco
+        description: This VNFC contains a TCP optimiser function
+        vdu_profile:
+          min_number_of_instances: 2
+          max_number_of_instances: 6
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 4 GB
+            virtual_cpu:
+              cpu_architecture: x86
+              num_virtual_cpu: 2
+      requirements:
+        - virtual_storage: tco_db
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: tco.image.v1.0.qcow2
+          properties:
+            name: TCO Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: e8c3036539fd7a5f97a1bf44eb05fcce8b556a1a7e664dbeda90ed3cd74b4f5a
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB
+ 
+    tco_db: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 20 GB
+          rdma_enabled: true
+
+ 
+    fw:
+      type: tosca.nodes.nfv.Vdu.Compute
+      properties:
+        name: Firewall
+        description: This VNFC contains a Layer-7 Firewall
+        vdu_profile:
+          min_number_of_instances: 2 
+          max_number_of_instances: 8
+      capabilities:
+        virtual_compute:
+          properties:
+            virtual_memory:
+              virtual_mem_size: 8 GB
+            virtual_cpu:              
+              num_virtual_cpu: 4
+      requirements:
+        - virtual_storage: fw_db
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: fw.image.v1.0.qcow2
+          properties:
+            name: Firewall Software
+            version: '1.0'
+            checksum:
+              algorithm: sha-256
+              hash: c7c3036539fd7a5f87a1bf44eb12fdde8b556a1a7e664dbeda90ed3cd74b4f9d
+            container_format: bare
+            disk_format: qcow2
+            min_disk: 2 GB
+            size: 2 GB 
+
+
+    fw_db: 
+      type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
+      properties:
+        virtual_block_storage_data:
+          size_of_storage: 50 GB
+          rdma_enabled: true
+
+
+    ROUTER_DP:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Ingress connection point to the data plane
+      requirements:
+        - virtual_binding: router
+#       - virtual_link: # to be connected to an external virtual link
+
+    ROUTER_DP_VIP:
+      type: tosca.nodes.nfv.VipCp
+      properties:
+        vip_function: load_balance
+        protocol:
+          - associated_layer_protocol: ipv4
+            address_data:
+              - address_type: ip_address
+                l3_address_data:
+                  ip_address_assignment: true
+                  floating_ip_activated: false
+                  number_of_ip_address: 1
+        layer_protocols: [ ipv4 ]
+        description: Virtual IP connection point to the data plane
+      requirements:
+        - target: ROUTER_DP
+  #     - virtual_link: # to be connected to an external virtual link
+ 
+    SFO_EXT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Egress connection point to the data plane
+      requirements:
+        - virtual_binding: sfo
+  #     - virtual_link: # to be connected to an external virtual link
+ 
+    
+    SFO_INT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Internal connection point to other VNFCs
+      requirements:
+        - virtual_binding: sfo
+        - virtual_link: InternalVL
+
+    ROUTER_INT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Internal connection point to other VNFCs
+      requirements:
+        - virtual_binding: router
+        - virtual_link: InternalVL
+
+    SDNC-INT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Internal connection point to other VNFCs
+      requirements:
+        - virtual_binding: sdnc
+        - virtual_link: InternalVL
+
+    PROBE_INT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Internal connection point to other VNFCs
+      requirements:
+        - virtual_binding: probe
+        - virtual_link: InternalVL
+
+    TC_INT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Internal connection point to other VNFCs
+      requirements:
+        - virtual_binding: tco
+        - virtual_link: InternalVL
+
+    FW_INT:
+      type: tosca.nodes.nfv.VduCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        description: Internal connection point to other VNFCs
+      requirements:
+        - virtual_binding: fw
+        - virtual_link: InternalVL
+
+
+    InternalVL:
+      type: tosca.nodes.nfv.VnfVirtualLink
+      properties:
+        connectivity_type:
+          layer_protocols: [ ipv4 ]
+        description: Internal VL for communication between all VNFC instances
+        vl_profile:
+          max_bitrate_requirements:
+            root: 100000000000    #bit/s        
+          min_bitrate_requirements:
+            root: 10000000000     #bit/s     
+
+
+            
+
+## Policies  
+
+  policies:
+    - policy_affinity_local_probe:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ probe ]
+        properties:
+          scope: nfvi_node
+
+    - policy_affinity_local_fw:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ fw ]
+        properties:
+          scope: nfvi_node             
+    
+    - policy_affinity_local_tco:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ tco ]
+        properties:
+          scope: nfvi_node        
+
+    - policy_affinity_local_router:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ router ]
+        properties:
+          scope: nfvi_node    
+
+    - policy_affinity_local_sdnc:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ sdnc ]
+        properties:
+          scope: nfvi_node 
+
+    - policy_affinity_local_sfo:
+        type: tosca.policies.nfv.AntiAffinityRule
+        targets: [ sfo ]
+        properties:
+          scope: nfvi_node 
+
+    - instantiation_levels:
+        type: tosca.policies.nfv.InstantiationLevels
+        properties: 
+          levels:
+            instantiation_level_1:
+              description: level 1
+              scale_info:
+                global:
+                  scale_level: 0  
+            instantiation_level_2:
+              description: level 2
+              scale_info:
+                global:
+                  scale_level: 2                 
+          default_level: instantiation_level_1
+
+
+    - probe_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2 
+            instantiation_level_2:
+              number_of_instances: 4           
+        targets: [ probe ]
+
+    - fw_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2 
+            instantiation_level_2:
+              number_of_instances: 4           
+        targets: [ fw ]
+
+    - tco_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2 
+            instantiation_level_2:
+              number_of_instances: 4           
+        targets: [ tco ]
+
+    - router_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2 
+            instantiation_level_2:
+              number_of_instances: 4           
+        targets: [ tco ]
+
+    - sdnc_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2 
+            instantiation_level_2:
+              number_of_instances: 4           
+        targets: [ tco ]
+
+    - sfo_instantiation_levels:
+        type: tosca.policies.nfv.VduInstantiationLevels
+        properties:
+          levels:
+            instantiation_level_1:
+              number_of_instances: 2 
+            instantiation_level_2:
+              number_of_instances: 4           
+        targets: [ tco ]
+
+    - scaling_aspects:
+        type: tosca.policies.nfv.ScalingAspects
+        properties:
+          aspects:
+            global:
+              name: Global scaling
+              description: Enables scaling all scalable components of the VNF
+              max_scale_level: 2          
+
+    - probe_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 2
+        targets: [ probe ]
+
+    - probe_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: global
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ probe ]
+
+    - fw_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 2
+        targets: [ fw ]
+
+    - fw_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: global
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ fw ]    
+        
+    - tco_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 2
+        targets: [ tco ]
+
+    - tco_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: global
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ tco ]
+
+    - router_initial_delta:
+        type: tosca.policies.nfv.VduInitialDelta
+        properties:
+          initial_delta:
+            number_of_instances: 2
+        targets: [ router ]
+
+    - router_scaling_aspect_deltas:
+        type: tosca.policies.nfv.VduScalingAspectDeltas
+        properties:
+          aspect: global
+          deltas:
+            delta_1:
+              number_of_instances: 1
+        targets: [ router ]
+
+
