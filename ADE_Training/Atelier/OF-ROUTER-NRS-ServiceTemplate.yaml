@@ -10,8 +10,8 @@ topology_template:
   substitution_mappings:
     node_type: MyCompany.NrsOfRouterNodeType.1_0.1_0
     requirements:
-      virtual_link_DP:   [ ROUTER_DP, virtual_link ]
-      virtual_link_DP_VIP:  [ ROUTER_DP_VIP, virtual_link ]
+      virtual_link_A:   [ ROUTER_A, virtual_link ]
+      virtual_link_B:   [ ROUTER_B, virtual_link ]
       virtual_link_OF: [ ROUTER_OF, virtual_link ]     
       
 
@@ -62,39 +62,29 @@ topology_template:
           rdma_enabled: true
 
     
-    ROUTER_DP:
+    ROUTER_A:
       type: tosca.nodes.nfv.VduCp
       properties:
         layer_protocols: [ ipv4 ]
-        description: Ingress connection point to the data plane
+        description: Connection point to the data plane
       requirements:
         - virtual_binding: router_component
 #       - virtual_link: # to be connected to an external virtual link
 
-    ROUTER_DP_VIP:
-      type: tosca.nodes.nfv.VipCp
+    ROUTER_B:
+      type: tosca.nodes.nfv.VduCp
       properties:
-        vip_function: load_balance
-        protocol:
-          - associated_layer_protocol: ipv4
-            address_data:
-              - address_type: ip_address
-                l3_address_data:
-                  ip_address_assignment: true
-                  floating_ip_activated: false
-                  number_of_ip_address: 1
         layer_protocols: [ ipv4 ]
-        description: Virtual IP connection point to the data plane
+        description: Connection point to the data plane
       requirements:
-        - target: ROUTER_DP
-  #     - virtual_link: # to be connected to an external virtual link     
-
+        - virtual_binding: router_component
+#       - virtual_link: # to be connected to an external virtual link
 
     ROUTER_OF:
       type: tosca.nodes.nfv.VduCp
       properties:
         layer_protocols: [ ipv4 ]
-        description: Internal connection point to SDN controllers
+        description: Connection point to SDN controllers
       requirements:
         - virtual_binding: router_component
   #     - virtual_link: # to be connected to an external virtual link     
