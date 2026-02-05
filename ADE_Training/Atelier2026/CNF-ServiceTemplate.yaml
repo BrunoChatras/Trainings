@@ -1,21 +1,22 @@
 tosca_definitions_version: tosca_simple_yaml_1_3
-description: "VNFD service template"
+description: "VNFD service template for a CNF"
+
 imports:
   - etsi_nfv_sol001_vnfd_types.yaml
   - 5GC-NodeTypes.yaml
   
 dsl_definitions:
   types:
-    SpecificNodeTypeName: &SpecificName MyCompany.UPF.1_0.1_0      
-
+    SpecificNodeTypeName: &SpecificName MyCompany.PCF.1_0.1_0      
+    #PCF is to be replaced by the name of the containerised 5G NF   
+    #substitution mappings and cp definitions have to be modified to match the 5G NF requirements
+    
 topology_template:
 
   substitution_mappings:
     node_type: *SpecificName
     requirements:
-      virtual_link_RAN:   [ ran_cp, virtual_link ]
       virtual_link_5GCC:  [ 5gcc_cp, virtual_link ]
-      virtual_link_N6_N9:  [ n6_n9_cp, virtual_link ]
       virtual_link_MGT: [ mgt_cp, virtual_link ]
 
 
@@ -31,38 +32,98 @@ topology_template:
             scale: {}    
             scale_to_level: {}
             heal : {}  
-    
+
+    main_mciop:
+      type: tosca.nodes.nfv.Mciop
+      requirements:
+        - associatedVdu: nf_main_vnfc
+      artifacts:
+        main_helm:
+          description: Helm Chart for opendb Pod
+          type: tosca.artifacts.nfv.HelmChart
+          file: Artifacts/Scripts/main.tgz
+
+    VirtCp:
+      type: tosca.nodes.nfv.VirtualCp
+      properties:
+        layer_protocols: [ ipv4 ]
+        protocol:
+        - address_data:
+          - address_type: ip_address
+            l3_address_data:
+              floating_ip_activated: true
+              ip_address_assignment: false
+              ip_address_type: ipv4
+              number_of_ip_address: 1
+          associated_layer_protocol: ipv4
+        additionalServiceData:
+          - portData:
+            - name: MainService
+              protocol: tcp
+              port: 8001
+              portConfigurable: false            
+      requirements:
+        - target: nf_main_vnfc
+        # - virtual_link: the target node is determined in the NSD
+
     nf_main_vnfc:
-      type: tosca.nodes.nfv.Vdu.Compute
+      type: tosca.nodes.nfv.Vdu.OsContainerDeployableUnit
       properties:
         name: Main VNFC
         description: This VNFC contains an the main NF software
         vdu_profile:
           min_number_of_instances: 1 
           max_number_of_instances: 10
-      capabilities:
-        virtual_compute:
-          properties:
-            virtual_memory:
-              virtual_mem_size: 4 GB
-            virtual_cpu:              
-              num_virtual_cpu: 8
       requirements:
         - virtual_storage: nf_main_db
+        - virtual_storage: nf_oam_db
+        - container: main_container
+        - container: sidecar_container
+     
+    main_container:
+      type: tosca.nodes.nfv.Vdu.OsContainer
+      properties:
+        name: "main container"
+        description: "main functionality"
+        requested_cpu_resources: 8000 # In Milli-Cpus, ie 0.1 CPU
+        cpu_resource_limit: 8000 # In Milli-Cpus, ie 1 CPU, single threaded
+        requested_memory_resources: 4096 MiB
+        memory_resource_limit: 4096 MiB
       artifacts:
         sw_image:
           type: tosca.artifacts.nfv.SwImage
-          file: nf_main_vnfc.image.v1.0.qcow2
+          file: Artifacts/Images/main_image
           properties:
-            name: Main NF Software
-            version: '1.0'
+            name: main
+            version: "7.3"
             checksum:
               algorithm: sha-256
-              hash: c7c3036539fd7a5f87a1bf44eb12fdde8b556a1a7e664dbeda90ed3cd74b4f9d
-            container_format: bare
-            disk_format: qcow2
-            min_disk: 2 GB
-            size: 2 GB 
+              hash: a411cafee2f0f702572369da0b765e2
+            container_format: docker
+            size: "1024MB" 
+
+    sidecar_container:
+      type: tosca.nodes.nfv.Vdu.OsContainer
+      properties:
+        name: "sidecar container"
+        description: "sidecar functionality"
+        requested_cpu_resources: 2000 # In Milli-Cpus, ie 0.1 CPU
+        cpu_resource_limit: 2000 # In Milli-Cpus, ie 1 CPU, single threaded
+        requested_memory_resources: 20248 MiB
+        memory_resource_limit: 2048 MiB
+      artifacts:
+        sw_image:
+          type: tosca.artifacts.nfv.SwImage
+          file: Artifacts/Images/main_image
+          properties:
+            name: main
+            version: "7.3"
+            checksum:
+              algorithm: sha-256
+              hash: a411cafee2f0f702572369da0b765e2
+            container_format: docker
+            size: "1024MB"  
+      
 
     nf_main_db: 
       type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
@@ -71,53 +132,12 @@ topology_template:
           size_of_storage: 10 GB
           rdma_enabled: true
 
-    nf_oam_vnfc:
-      type: tosca.nodes.nfv.Vdu.Compute
-      properties:
-        name: OAM VNFC
-        description: This VNFC contains an the OAM software
-        vdu_profile:
-          min_number_of_instances: 2 
-          max_number_of_instances: 4
-      capabilities:
-        virtual_compute:
-          properties:
-            virtual_memory:
-              virtual_mem_size: 2 GB
-            virtual_cpu:              
-              num_virtual_cpu: 2
-      requirements:
-        - virtual_storage: nf_oam_db
-      artifacts:
-        sw_image:
-          type: tosca.artifacts.nfv.SwImage
-          file: nf_oam.image.v1.0.qcow2
-          properties:
-            name: OAM NF Software
-            version: '1.0'
-            checksum:
-              algorithm: sha-256
-              hash: c7c3036539fd7a5f87a1bf44eb12fdde8b556a1a7e664dbeda90ed3cd74b4f9d
-            container_format: bare
-            disk_format: qcow2
-            min_disk: 2 GB
-            size: 2 GB 
-
     nf_oam_db: 
       type: tosca.nodes.nfv.Vdu.VirtualBlockStorage
       properties:
         virtual_block_storage_data:
           size_of_storage: 500 GB
           rdma_enabled: true
-
-    ran_cp:
-      type: tosca.nodes.nfv.VduCp
-      properties:
-        layer_protocols: [ ipv4 ]
-        description: connection point to the RAN
-      requirements:
-        - virtual_binding: nf_main_vnfc
-#       - virtual_link: # to be connected to an external virtual link
 
     5gcc_cp:
       type: tosca.nodes.nfv.VduCp
@@ -128,22 +148,13 @@ topology_template:
         - virtual_binding: nf_main_vnfc
   #     - virtual_link: # to be connected to an external virtual link
  
-    n6_n9_cp:
-      type: tosca.nodes.nfv.VduCp
-      properties:
-        layer_protocols: [ ipv4 ]
-        description: Connection point to N6/N9 interfaces
-      requirements:
-        - virtual_binding: nf_main_vnfc
-  #     - virtual_link: # to be connected to an external virtual link
-
     mgt_cp:
       type: tosca.nodes.nfv.VduCp
       properties:
         layer_protocols: [ ipv4 ]
         description: Management connection point to the OSS
       requirements:
-        - virtual_binding: nf_oam_vnfc
+        - virtual_binding: nf_main_vnfc
   #     - virtual_link: # to be connected to an external virtual link
 
 
@@ -170,21 +181,9 @@ topology_template:
               number_of_instances: 2
             medium_instantiation_level:
               number_of_instances: 4
-            big_instantiation_level:
+            large_instantiation_level:
               number_of_instances: 8
         targets: [ nf_main_vnfc ]
-
-    - nf_oam_vnfc_instantiation_levels:
-        type: tosca.policies.nfv.VduInstantiationLevels
-        properties:
-          levels:
-            small_instantiation_level:
-              number_of_instances: 1
-            medium_instantiation_level:
-              number_of_instances: 2
-            big_instantiation_level:
-              number_of_instances: 3
-        targets: [ nf_oam_vnfc ]
 
 
     - scaling_aspects:
@@ -212,20 +211,4 @@ topology_template:
               number_of_instances: 2
         targets: [ nf_main_vnfc ]
 
-
-    - oam_vnfc_initial_delta:
-        type: tosca.policies.nfv.VduInitialDelta
-        properties:
-          initial_delta:
-            number_of_instances: 1
-        targets: [ nf_oam_vnfc ]
-
-    - oam_vnfc_scaling_aspect_deltas:
-        type: tosca.policies.nfv.VduScalingAspectDeltas
-        properties:
-          aspect: all_vnfcs
-          deltas:
-            delta_1:
-              number_of_instances: 1
-        targets: [ nf_oam_vnfc ]
 

@@ -1,5 +1,5 @@
 tosca_definitions_version: tosca_simple_yaml_1_3
-description: "VNFD service template for a Firewall"
+description: "VNFD service template"
 imports:
   - etsi_nfv_sol001_vnfd_types.yaml
   - 5GC-NodeTypes.yaml
@@ -45,7 +45,7 @@ topology_template:
             virtual_memory:
               virtual_mem_size: 4 GB
             virtual_cpu:              
-              num_virtual_cpu: 32
+              num_virtual_cpu: 8
       requirements:
         - virtual_storage: nf_main_db
       artifacts:
@@ -84,7 +84,7 @@ topology_template:
             virtual_memory:
               virtual_mem_size: 2 GB
             virtual_cpu:              
-              num_virtual_cpu: 8
+              num_virtual_cpu: 2
       requirements:
         - virtual_storage: nf_oam_db
       artifacts:
