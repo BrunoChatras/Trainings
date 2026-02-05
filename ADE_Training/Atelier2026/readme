@@ -1,2 +1,6 @@
-Les VNFD nécessaires à certains projets ADE707 2026 seront disponibles ici jeudi à partir de 14h00.
+The VNFDs in this repository are provided for teaching and experimentation purposes only.
+They are not intended to model realistic 5G Network Functions, nor current industrial deployments.
+
+In particular, they rely on VM-based VNFs, whereas most real 5G systems are today implemented using cloud-native, container-based architectures.
+The descriptors intentionally simplify functional, architectural, and operational aspects in order to focus on NSD design and orchestration concepts.
 
